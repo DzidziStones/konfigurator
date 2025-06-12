@@ -36,10 +36,6 @@
       padding: 6px 10px;
       cursor: pointer;
       white-space: nowrap;
-      border: none;
-      color: white;
-      font-weight: bold;
-      border-radius: 4px;
     }
     .clear-button {
       margin-top: 10px;
@@ -93,25 +89,6 @@
       selenite_white: 'Selenit biały', selenite_color: 'Selenit kolorowy'
     };
 
-    const stoneColors = {
-      amethyst: '#9966cc',
-      apatite: '#3399cc',
-      lapis: '#26418f',
-      tiger: '#cc9933',
-      rosequartz: '#f7c6d7',
-      citrine: '#ffcc00',
-      pinktourmaline: '#ff6699',
-      blacktourmaline: '#333333',
-      malachite: '#228b22',
-      emerald: '#50c878',
-      ruby: '#aa0114',
-      sapphire: '#0f52ba',
-      pearl: '#e0e0e0',
-      morganite: '#f4cccc',
-      selenite_white: '#ffffff',
-      selenite_color: '#c1c1f0'
-    };
-
     const maxCircleLengthMM = 180;
     const pixelsPerMM = 3;
     const radius = (maxCircleLengthMM * pixelsPerMM) / (2 * Math.PI);
@@ -135,16 +112,21 @@
     }
 
     function getUsedAngleRadians() {
-      return beads.reduce((sum, bead) => {
-        const arcLength = bead.size * pixelsPerMM;
-        return sum + (arcLength / radius);
-      }, 0);
+      let sum = 0;
+      for (const bead of beads) {
+        const arcLength = bead.size * pixelsPerMM; // in pixels
+        const angle = arcLength / radius;
+        sum += angle;
+      }
+      return sum;
     }
 
     function addBead(stone, size) {
       const arcLength = size * pixelsPerMM;
       const angle = arcLength / radius;
-      if (getUsedAngleRadians() + angle > 2 * Math.PI) return;
+      if (getUsedAngleRadians() + angle > 2 * Math.PI) {
+        return; // Nie dodawaj więcej
+      }
       beads.push({ stone, size });
       drawBeads();
       updateBeadSummary();
@@ -158,10 +140,10 @@
 
     function updateBeadSummary() {
       const summary = {};
-      beads.forEach(bead => {
+      for (const bead of beads) {
         const key = `${stoneLabels[bead.stone]} - ${bead.size}mm`;
         summary[key] = (summary[key] || 0) + 1;
-      });
+      }
 
       const beadList = document.getElementById('beadList');
       beadList.innerHTML = '';
@@ -177,7 +159,8 @@
       if (beads.length === 0) return;
 
       let currentAngle = -Math.PI / 2;
-      beads.forEach(bead => {
+
+      for (const bead of beads) {
         const diameterPx = bead.size * pixelsPerMM;
         const angleStep = diameterPx / radius;
         const midAngle = currentAngle + angleStep / 2;
@@ -203,7 +186,7 @@
         }
 
         currentAngle += angleStep;
-      });
+      }
     }
 
     canvas.addEventListener('click', (e) => {
@@ -212,6 +195,7 @@
       const my = e.clientY - rect.top;
 
       let currentAngle = -Math.PI / 2;
+
       for (let i = 0; i < beads.length; i++) {
         const bead = beads[i];
         const diameterPx = bead.size * pixelsPerMM;
@@ -246,7 +230,6 @@
         const cell = document.createElement('td');
         const btn = document.createElement('button');
         btn.textContent = `${size}mm`;
-        btn.style.backgroundColor = stoneColors[stone] || '#888';
         btn.onclick = () => addBead(stone, size);
         cell.appendChild(btn);
         row.appendChild(cell);

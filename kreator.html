@@ -1,77 +1,88 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kreator Bransoletki</title>
   <style>
     body {
       font-family: sans-serif;
-      margin: 20px;
+      margin: 0;
+      padding: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 20px;
     }
 
     canvas {
-      border: 1px solid #ccc;
-      width: 90vw;
-      height: 90vw;
+      width: 100%;
       max-width: 500px;
-      max-height: 500px;
+      height: auto;
+      border: 1px solid #ccc;
+      margin: 10px 0;
     }
 
-    .controls-wrapper {
-      width: 100%;
-      max-height: 40vh;
+    .scroll-table-wrapper {
+      max-height: 300px;
       overflow-y: auto;
+      width: 100%;
+      max-width: 500px;
+      border-top: 1px solid #ccc;
     }
 
     .controls-table {
-      border-collapse: collapse;
       width: 100%;
-      table-layout: fixed;
-      font-size: 1.2em;
+      border-collapse: collapse;
     }
 
-    .controls-table th, .controls-table td {
-      padding: 4px;
+    .controls-table th,
+    .controls-table td {
+      padding: 10px 5px;
       text-align: center;
     }
 
     .controls-table button {
-      padding: 4px 6px;
-      cursor: pointer;
-      white-space: nowrap;
-      font-size: 0.9em;
-    }
-
-    .clear-button, .save-button {
-      padding: 10px 16px;
+      padding: 10px;
       font-size: 1.2em;
-      margin-top: 10px;
+      width: 100%;
     }
 
-    #backgroundSelector {
-      margin-top: 10px;
-      font-size: 1em;
-      padding: 4px;
+    .clear-button {
+      font-size: 1.1em;
+      margin: 10px;
+      padding: 10px 15px;
+    }
+
+    #beadSummary {
+      margin-top: 20px;
+      max-width: 500px;
+      padding: 0 10px;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        font-size: 1.2em;
+      }
+
+      .scroll-table-wrapper {
+        max-height: 40vh;
+      }
+
+      .controls-table button {
+        font-size: 1.5em;
+        padding: 12px;
+      }
+
+      .clear-button {
+        font-size: 1.3em;
+      }
     }
   </style>
 </head>
 <body>
   <canvas id="braceletCanvas" width="500" height="500"></canvas>
 
-  <select id="backgroundSelector">
-     	 <option value="">Brak</option>
-      	<option value="red">Czerwony</option>
-      	<option value="blue">Niebieski</option>
-      	<option value="green">Zielony</option>
-    	<option value="yellow">Żółty</option>
-  </select>
-
-  <div class="controls-wrapper">
+  <div class="scroll-table-wrapper">
     <table class="controls-table" id="buttonsTable">
       <thead>
         <tr>
@@ -86,9 +97,9 @@
   </div>
 
   <button class="clear-button" onclick="clearBeads()">Wyczyść</button>
-  <button class="save-button" onclick="saveAsJPG()">Zapisz jako JPG</button>
+  <button class="clear-button" onclick="saveAsJPG()">Zapisz jako JPG</button>
 
-  <div id="beadSummary" style="margin-top: 20px;">
+  <div id="beadSummary">
     <h3>Podsumowanie koralików:</h3>
     <ul id="beadList"></ul>
   </div>
@@ -100,8 +111,6 @@
     const centerY = canvas.height / 2;
 
     const stoneImages = {};
-    const backgroundImages = {};
-
     const stoneKeys = [
       'amethyst', 'apatite', 'lapis', 'tiger', 'rosequartz', 'citrine',
       'pinktourmaline', 'blacktourmaline', 'malachite', 'emerald', 'ruby',
@@ -121,40 +130,31 @@
     const pixelsPerMM = 5;
     const radius = (maxCircleLengthMM * pixelsPerMM) / (2 * Math.PI);
     const beads = [];
-    let background = 'white';
 
     function loadImages(callback) {
       let loaded = 0;
-      const total = stoneKeys.length + 6;
-
       stoneKeys.forEach(stone => {
         const img = new Image();
-        img.onload = checkLoaded;
-        img.onerror = checkLoaded;
+        img.onload = img.onerror = () => {
+          loaded++;
+          if (loaded === stoneKeys.length) callback();
+        };
         img.src = `foto/${stone}.jpg`;
         stoneImages[stone] = img;
       });
-
-      ['white', 'black', 'blue', 'red', 'green', 'yellow'].forEach(color => {
-        const bg = new Image();
-        bg.onload = checkLoaded;
-        bg.onerror = checkLoaded;
-        bg.src = `background/${color}.jpg`;
-        backgroundImages[color] = bg;
-      });
-
-      function checkLoaded() {
-        loaded++;
-        if (loaded === total) callback();
-      }
     }
 
     function getUsedAngleRadians() {
-      return beads.reduce((sum, bead) => sum + (bead.size * pixelsPerMM) / radius, 0);
+      return beads.reduce((sum, bead) => {
+        const arcLength = bead.size * pixelsPerMM;
+        const angle = arcLength / radius;
+        return sum + angle;
+      }, 0);
     }
 
     function addBead(stone, size) {
-      const angle = (size * pixelsPerMM) / radius;
+      const arcLength = size * pixelsPerMM;
+      const angle = arcLength / radius;
       if (getUsedAngleRadians() + angle > 2 * Math.PI) return;
       beads.push({ stone, size });
       drawBeads();
@@ -184,13 +184,11 @@
     }
 
     function drawBeads() {
-      const bgImg = backgroundImages[background];
-      if (bgImg?.complete) ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-      else ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       if (beads.length === 0) return;
 
       let currentAngle = -Math.PI / 2;
+
       for (const bead of beads) {
         const diameterPx = bead.size * pixelsPerMM;
         const angleStep = diameterPx / radius;
@@ -215,6 +213,7 @@
           ctx.fill();
           ctx.stroke();
         }
+
         currentAngle += angleStep;
       }
     }
@@ -225,6 +224,7 @@
       const my = e.clientY - rect.top;
 
       let currentAngle = -Math.PI / 2;
+
       for (let i = 0; i < beads.length; i++) {
         const bead = beads[i];
         const diameterPx = bead.size * pixelsPerMM;
@@ -241,13 +241,9 @@
           updateBeadSummary();
           break;
         }
+
         currentAngle += angleStep;
       }
-    });
-
-    document.getElementById('backgroundSelector').addEventListener('change', (e) => {
-      background = e.target.value;
-      drawBeads();
     });
 
     const sizes = [4, 6, 8];
@@ -273,11 +269,19 @@
 
     loadImages(() => drawBeads());
 
-    function saveAsJPG() {
-      const link = document.createElement('a');
-      link.download = 'bransoletkaDzidziStones.jpg';
-      link.href = canvas.toDataURL('image/jpeg', 0.9);
-      link.click();
+  	  function saveAsJPG() {
+ 	 if (beads.length === 0) {
+ 	   alert("Najpierw dodaj koraliki, aby zapisać bransoletkę.");
+  	  return;
+	  }
+
+ 	 const image = canvas.toDataURL('image/jpeg', 0.95);
+  	const link = document.createElement('a');
+	  link.href = image;
+ 	 link.download = 'bransoletka.jpg';
+  	document.body.appendChild(link);
+ 	 link.click();
+  	document.body.removeChild(link);
     }
   </script>
 </body>

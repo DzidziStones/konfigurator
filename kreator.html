@@ -7,63 +7,69 @@
   <style>
     body {
       font-family: sans-serif;
-      margin: 0;
-      padding: 0;
+      margin: 20px;
       display: flex;
       flex-direction: column;
       align-items: center;
+      gap: 20px;
     }
+
     canvas {
       border: 1px solid #ccc;
       width: 90vw;
       height: 90vw;
       max-width: 500px;
       max-height: 500px;
-      margin-top: 20px;
     }
+
     .controls-wrapper {
-      margin-top: 20px;
-      max-height: 50vh;
-      overflow-y: auto;
       width: 100%;
+      max-height: 40vh;
+      overflow-y: auto;
     }
+
     .controls-table {
       border-collapse: collapse;
       width: 100%;
+      table-layout: fixed;
       font-size: 1.2em;
     }
+
     .controls-table th, .controls-table td {
-      padding: 6px;
+      padding: 4px;
       text-align: center;
     }
+
     .controls-table button {
       padding: 4px 6px;
-      font-size: 0.9em;
       cursor: pointer;
+      white-space: nowrap;
+      font-size: 0.9em;
     }
-    .clear-button {
+
+    .clear-button, .save-button {
+      padding: 10px 16px;
+      font-size: 1.2em;
       margin-top: 10px;
     }
+
     #backgroundSelector {
-      position: absolute;
-      bottom: 10px;
-      left: 10px;
-      font-size: 14px;
+      margin-top: 10px;
+      font-size: 1em;
+      padding: 4px;
     }
   </style>
 </head>
 <body>
   <canvas id="braceletCanvas" width="500" height="500"></canvas>
 
-  <div id="backgroundSelector">
-    <label for="backgroundSelect">Tło:</label>
-    <select id="backgroundSelect" onchange="changeBackground()">
-      <option value="">Brak</option>
-      <option value="red.jpg">Czerwony</option>
-      <option value="blue.jpg">Niebieski</option>
-      <option value="green.jpg">Zielony</option>
-    </select>
-  </div>
+  <select id="backgroundSelector">
+     	 <option value="">Brak</option>
+      	<option value="red">Czerwony</option>
+      	<option value="blue">Niebieski</option>
+      	<option value="green">Zielony</option>
+    	<option value="yellow">Żółty</option>
+  </select>
 
   <div class="controls-wrapper">
     <table class="controls-table" id="buttonsTable">
@@ -77,14 +83,14 @@
       </thead>
       <tbody id="tableBody"></tbody>
     </table>
+  </div>
 
-    <button class="clear-button" onclick="clearBeads()">Wyczyść</button>
-    <button onclick="saveAsJPG()">Zapisz jako JPG</button>
+  <button class="clear-button" onclick="clearBeads()">Wyczyść</button>
+  <button class="save-button" onclick="saveAsJPG()">Zapisz jako JPG</button>
 
-    <div id="beadSummary" style="margin-top: 20px;">
-      <h3>Podsumowanie koralików:</h3>
-      <ul id="beadList"></ul>
-    </div>
+  <div id="beadSummary" style="margin-top: 20px;">
+    <h3>Podsumowanie koralików:</h3>
+    <ul id="beadList"></ul>
   </div>
 
   <script>
@@ -94,6 +100,8 @@
     const centerY = canvas.height / 2;
 
     const stoneImages = {};
+    const backgroundImages = {};
+
     const stoneKeys = [
       'amethyst', 'apatite', 'lapis', 'tiger', 'rosequartz', 'citrine',
       'pinktourmaline', 'blacktourmaline', 'malachite', 'emerald', 'ruby',
@@ -113,48 +121,40 @@
     const pixelsPerMM = 5;
     const radius = (maxCircleLengthMM * pixelsPerMM) / (2 * Math.PI);
     const beads = [];
-    let backgroundImage = null;
+    let background = 'white';
 
     function loadImages(callback) {
       let loaded = 0;
+      const total = stoneKeys.length + 6;
+
       stoneKeys.forEach(stone => {
         const img = new Image();
-        img.onload = img.onerror = () => {
-          loaded++;
-          if (loaded === stoneKeys.length) callback();
-        };
+        img.onload = checkLoaded;
+        img.onerror = checkLoaded;
         img.src = `foto/${stone}.jpg`;
         stoneImages[stone] = img;
       });
-    }
 
-    function changeBackground() {
-      const select = document.getElementById("backgroundSelect");
-      const filename = select.value;
-      if (!filename) {
-        backgroundImage = null;
-        drawBeads();
-        return;
+      ['white', 'black', 'blue', 'red', 'green', 'yellow'].forEach(color => {
+        const bg = new Image();
+        bg.onload = checkLoaded;
+        bg.onerror = checkLoaded;
+        bg.src = `background/${color}.jpg`;
+        backgroundImages[color] = bg;
+      });
+
+      function checkLoaded() {
+        loaded++;
+        if (loaded === total) callback();
       }
-      const img = new Image();
-      img.onload = () => {
-        backgroundImage = img;
-        drawBeads();
-      };
-      img.onerror = () => {
-        backgroundImage = null;
-        alert("Nie udało się załadować tła.");
-      };
-      img.src = `background/${filename}`;
     }
 
     function getUsedAngleRadians() {
-      return beads.reduce((sum, bead) => sum + (bead.size * pixelsPerMM / radius), 0);
+      return beads.reduce((sum, bead) => sum + (bead.size * pixelsPerMM) / radius, 0);
     }
 
     function addBead(stone, size) {
-      const arcLength = size * pixelsPerMM;
-      const angle = arcLength / radius;
+      const angle = (size * pixelsPerMM) / radius;
       if (getUsedAngleRadians() + angle > 2 * Math.PI) return;
       beads.push({ stone, size });
       drawBeads();
@@ -173,6 +173,7 @@
         const key = `${stoneLabels[bead.stone]} - ${bead.size}mm`;
         summary[key] = (summary[key] || 0) + 1;
       }
+
       const beadList = document.getElementById('beadList');
       beadList.innerHTML = '';
       Object.entries(summary).forEach(([label, count]) => {
@@ -183,18 +184,21 @@
     }
 
     function drawBeads() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      if (backgroundImage) {
-        ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
-      }
+      const bgImg = backgroundImages[background];
+      if (bgImg?.complete) ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+      else ctx.clearRect(0, 0, canvas.width, canvas.height);
+
       if (beads.length === 0) return;
+
       let currentAngle = -Math.PI / 2;
       for (const bead of beads) {
         const diameterPx = bead.size * pixelsPerMM;
         const angleStep = diameterPx / radius;
         const midAngle = currentAngle + angleStep / 2;
+
         const x = centerX + radius * Math.cos(midAngle);
         const y = centerY + radius * Math.sin(midAngle);
+
         const img = stoneImages[bead.stone];
         if (img && img.complete) {
           ctx.save();
@@ -219,14 +223,17 @@
       const rect = canvas.getBoundingClientRect();
       const mx = e.clientX - rect.left;
       const my = e.clientY - rect.top;
+
       let currentAngle = -Math.PI / 2;
       for (let i = 0; i < beads.length; i++) {
         const bead = beads[i];
         const diameterPx = bead.size * pixelsPerMM;
         const angleStep = diameterPx / radius;
         const midAngle = currentAngle + angleStep / 2;
+
         const x = centerX + radius * Math.cos(midAngle);
         const y = centerY + radius * Math.sin(midAngle);
+
         const dx = mx - x, dy = my - y;
         if (Math.sqrt(dx * dx + dy * dy) <= diameterPx / 2) {
           beads.splice(i, 1);
@@ -238,6 +245,11 @@
       }
     });
 
+    document.getElementById('backgroundSelector').addEventListener('change', (e) => {
+      background = e.target.value;
+      drawBeads();
+    });
+
     const sizes = [4, 6, 8];
     const tableBody = document.getElementById('tableBody');
 
@@ -246,6 +258,7 @@
       const nameCell = document.createElement('td');
       nameCell.textContent = stoneLabels[stone];
       row.appendChild(nameCell);
+
       sizes.forEach(size => {
         const cell = document.createElement('td');
         const btn = document.createElement('button');
@@ -254,22 +267,17 @@
         cell.appendChild(btn);
         row.appendChild(cell);
       });
+
       tableBody.appendChild(row);
     });
 
     loadImages(() => drawBeads());
 
     function saveAsJPG() {
-      if (beads.length === 0 && !backgroundImage) {
-        alert("Najpierw dodaj koraliki lub wybierz tło, aby zapisać bransoletkę.");
-        return;
-      }
       const link = document.createElement('a');
-      link.download = 'bransoletka.jpg';
-      link.href = canvas.toDataURL('image/jpeg', 0.95);
-      document.body.appendChild(link);
+      link.download = 'bransoletkaDzidziStones.jpg';
+      link.href = canvas.toDataURL('image/jpeg', 0.9);
       link.click();
-      document.body.removeChild(link);
     }
   </script>
 </body>

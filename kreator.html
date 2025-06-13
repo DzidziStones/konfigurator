@@ -1,101 +1,107 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kreator Bransoletki</title>
   <style>
     body {
       font-family: sans-serif;
-      font-size: 75%;
-      margin: 20px;
+      margin: 0;
+      padding: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 20px;
     }
 
     canvas {
-      border: 1px solid #ccc;
-      width: 500px;
-      height: 500px;
-    }
-
-    .controls-wrapper {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
       width: 100%;
+      max-width: 500px;
+      height: auto;
+      border: 1px solid #ccc;
+      margin: 10px 0;
     }
 
     .scroll-table-wrapper {
-      overflow-x: auto;
-      max-width: 100%;
-      margin-top: 10px;
+      max-height: 300px;
+      overflow-y: auto;
+      width: 100%;
+      max-width: 500px;
+      border-top: 1px solid #ccc;
     }
 
     .controls-table {
+      width: 100%;
       border-collapse: collapse;
-      min-width: 600px;
     }
 
     .controls-table th,
     .controls-table td {
-      padding: 3px;
+      padding: 10px 5px;
       text-align: center;
     }
 
     .controls-table button {
-      padding: 4px 8px;
-      font-size: 75%;
-      cursor: pointer;
-      white-space: nowrap;
+      padding: 10px;
+      font-size: 1.2em;
+      width: 100%;
     }
 
     .clear-button {
-      margin-top: 10px;
-      font-size: 75%;
-      padding: 4px 8px;
+      font-size: 1.1em;
+      margin: 10px;
+      padding: 10px 15px;
+    }
+
+    #beadSummary {
+      margin-top: 20px;
+      max-width: 500px;
+      padding: 0 10px;
     }
 
     @media (max-width: 600px) {
-      canvas {
-        width: 90vw;
-        height: 90vw;
+      body {
+        font-size: 1.2em;
       }
 
-      .controls-wrapper {
-        align-items: center;
+      .scroll-table-wrapper {
+        max-height: 40vh;
+      }
+
+      .controls-table button {
+        font-size: 1.5em;
+        padding: 12px;
+      }
+
+      .clear-button {
+        font-size: 1.3em;
       }
     }
   </style>
 </head>
 <body>
-
   <canvas id="braceletCanvas" width="500" height="500"></canvas>
 
-  <div class="controls-wrapper">
-    <div class="scroll-table-wrapper">
-      <table class="controls-table" id="buttonsTable">
-        <thead>
-          <tr>
-            <th>Kamień / Rozmiar</th>
-            <th>4 mm</th>
-            <th>6 mm</th>
-            <th>8 mm</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-      </table>
-    </div>
+  <div class="scroll-table-wrapper">
+    <table class="controls-table" id="buttonsTable">
+      <thead>
+        <tr>
+          <th>Kamień / Rozmiar</th>
+          <th>4 mm</th>
+          <th>6 mm</th>
+          <th>8 mm</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
 
-    <button class="clear-button" onclick="clearBeads()">Wyczyść</button>
-    <button onclick="saveAsJPG()">Zapisz jako JPG</button>
+  <button class="clear-button" onclick="clearBeads()">Wyczyść</button>
+  <button class="clear-button" onclick="saveAsJPG()">Zapisz jako JPG</button>
 
-    <div id="beadSummary" style="margin-top: 20px;">
-      <h3>Podsumowanie koralików:</h3>
-      <ul id="beadList"></ul>
-    </div>
+  <div id="beadSummary">
+    <h3>Podsumowanie koralików:</h3>
+    <ul id="beadList"></ul>
   </div>
 
   <script>
@@ -129,11 +135,7 @@
       let loaded = 0;
       stoneKeys.forEach(stone => {
         const img = new Image();
-        img.onload = () => {
-          loaded++;
-          if (loaded === stoneKeys.length) callback();
-        };
-        img.onerror = () => {
+        img.onload = img.onerror = () => {
           loaded++;
           if (loaded === stoneKeys.length) callback();
         };
@@ -143,11 +145,16 @@
     }
 
     function getUsedAngleRadians() {
-      return beads.reduce((sum, bead) => sum + (bead.size * pixelsPerMM) / radius, 0);
+      return beads.reduce((sum, bead) => {
+        const arcLength = bead.size * pixelsPerMM;
+        const angle = arcLength / radius;
+        return sum + angle;
+      }, 0);
     }
 
     function addBead(stone, size) {
-      const angle = (size * pixelsPerMM) / radius;
+      const arcLength = size * pixelsPerMM;
+      const angle = arcLength / radius;
       if (getUsedAngleRadians() + angle > 2 * Math.PI) return;
       beads.push({ stone, size });
       drawBeads();
@@ -262,11 +269,19 @@
 
     loadImages(() => drawBeads());
 
-    function saveAsJPG() {
-      const link = document.createElement('a');
-      link.download = 'bransoletka.jpg';
-      link.href = canvas.toDataURL('image/jpeg', 0.9);
-      link.click();
+  	  function saveAsJPG() {
+ 	 if (beads.length === 0) {
+ 	   alert("Najpierw dodaj koraliki, aby zapisać bransoletkę.");
+  	  return;
+	  }
+
+ 	 const image = canvas.toDataURL('image/jpeg', 0.95);
+  	const link = document.createElement('a');
+	  link.href = image;
+ 	 link.download = 'bransoletka.jpg';
+  	document.body.appendChild(link);
+ 	 link.click();
+  	document.body.removeChild(link);
     }
   </script>
 </body>

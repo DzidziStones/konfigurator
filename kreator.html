@@ -96,21 +96,18 @@
     </table>
   </div>
 
-
-
   <div style="margin-bottom: 10px;">
     <label for="backgroundSelect">Tło:</label>
     <select id="backgroundSelect" onchange="setBackground(this.value)">
-      	<option value="">Brak tła</option>
-      	<option value="red.jpg">Czerwone liście</option>
-      	<option value="blue.jpg">Niebieski</option>
-      	<option value="green.jpg">Zielony</option>
-    	<option value="yellow.jpg">Żółty</option>
+      <option value="">Brak tła</option>
+      <option value="red.jpg">Czerwone liście</option>
+      <option value="blue.jpg">Niebieski</option>
+      <option value="green.jpg">Zielony</option>
+      <option value="yellow.jpg">Żółty</option>
     </select>
   </div>
 
   <button class="clear-button" onclick="clearBeads()">Wyczyść</button>
-
   <button class="clear-button" onclick="saveAsJPG()">Zapisz jako JPG</button>
 
   <div id="beadSummary">
@@ -124,7 +121,7 @@
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
 
-    const stoneImages = {};
+    const stoneImages = {}; // stoneImages['amethyst'] = [img1, img2, img3, img4]
     const stoneKeys = [
       'amethyst', 'apatite', 'lapis', 'tiger', 'rosequartz', 'citrine',
       'pinktourmaline', 'blacktourmaline', 'malachite', 'emerald', 'ruby',
@@ -148,14 +145,19 @@
 
     function loadImages(callback) {
       let loaded = 0;
+      const totalToLoad = stoneKeys.length * 4;
+
       stoneKeys.forEach(stone => {
-        const img = new Image();
-        img.onload = img.onerror = () => {
-          loaded++;
-          if (loaded === stoneKeys.length) callback();
-        };
-        img.src = `foto/${stone}.jpg`;
-        stoneImages[stone] = img;
+        stoneImages[stone] = [];
+        for (let i = 1; i <= 4; i++) {
+          const img = new Image();
+          img.onload = img.onerror = () => {
+            loaded++;
+            if (loaded === totalToLoad) callback();
+          };
+          img.src = `foto/${stone}_${i}.jpg`;
+          stoneImages[stone].push(img);
+        }
       });
     }
 
@@ -171,7 +173,9 @@
       const arcLength = size * pixelsPerMM;
       const angle = arcLength / radius;
       if (getUsedAngleRadians() + angle > 2 * Math.PI) return;
-      beads.push({ stone, size });
+
+      const variant = Math.floor(Math.random() * 4); // 0–3
+      beads.push({ stone, size, variant });
       drawBeads();
       updateBeadSummary();
     }
@@ -217,7 +221,7 @@
         const x = centerX + radius * Math.cos(midAngle);
         const y = centerY + radius * Math.sin(midAngle);
 
-        const img = stoneImages[bead.stone];
+        const img = stoneImages[bead.stone]?.[bead.variant];
         if (img && img.complete) {
           ctx.save();
           ctx.beginPath();

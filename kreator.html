@@ -2,6 +2,7 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kreator Bransoletki</title>
   <style>
     body {
@@ -39,6 +40,33 @@
     }
     .clear-button {
       margin-top: 10px;
+    }
+
+    /* --- Responsywność --- */
+    @media (max-width: 600px) {
+      body {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      canvas {
+        width: 90vw;
+        height: 90vw;
+      }
+
+      .controls-wrapper {
+        width: 100%;
+        align-items: center;
+      }
+
+      .controls-table {
+        width: 100%;
+        table-layout: fixed;
+      }
+
+      .controls-table th, .controls-table td {
+        text-align: center;
+      }
     }
   </style>
 </head>
@@ -90,7 +118,7 @@
     };
 
     const maxCircleLengthMM = 180;
-    const pixelsPerMM = 3;
+    const pixelsPerMM = 5;
     const radius = (maxCircleLengthMM * pixelsPerMM) / (2 * Math.PI);
     const beads = [];
 
@@ -114,7 +142,7 @@
     function getUsedAngleRadians() {
       let sum = 0;
       for (const bead of beads) {
-        const arcLength = bead.size * pixelsPerMM; // in pixels
+        const arcLength = bead.size * pixelsPerMM;
         const angle = arcLength / radius;
         sum += angle;
       }
@@ -124,9 +152,7 @@
     function addBead(stone, size) {
       const arcLength = size * pixelsPerMM;
       const angle = arcLength / radius;
-      if (getUsedAngleRadians() + angle > 2 * Math.PI) {
-        return; // Nie dodawaj więcej
-      }
+      if (getUsedAngleRadians() + angle > 2 * Math.PI) return;
       beads.push({ stone, size });
       drawBeads();
       updateBeadSummary();

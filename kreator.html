@@ -96,7 +96,21 @@
     </table>
   </div>
 
+
+
+  <div style="margin-bottom: 10px;">
+    <label for="backgroundSelect">Tło:</label>
+    <select id="backgroundSelect" onchange="setBackground(this.value)">
+      	<option value="">Brak tła</option>
+      	<option value="red.jpg">Czerwone liście</option>
+      	<option value="blue.jpg">Niebieski</option>
+      	<option value="green.jpg">Zielony</option>
+    	<option value="yellow.jpg">Żółty</option>
+    </select>
+  </div>
+
   <button class="clear-button" onclick="clearBeads()">Wyczyść</button>
+
   <button class="clear-button" onclick="saveAsJPG()">Zapisz jako JPG</button>
 
   <div id="beadSummary">
@@ -130,6 +144,7 @@
     const pixelsPerMM = 5;
     const radius = (maxCircleLengthMM * pixelsPerMM) / (2 * Math.PI);
     const beads = [];
+    let backgroundImage = null;
 
     function loadImages(callback) {
       let loaded = 0;
@@ -185,6 +200,11 @@
 
     function drawBeads() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (backgroundImage) {
+        ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+      }
+
       if (beads.length === 0) return;
 
       let currentAngle = -Math.PI / 2;
@@ -218,12 +238,27 @@
       }
     }
 
+    function setBackground(filename) {
+      if (!filename) {
+        backgroundImage = null;
+        drawBeads();
+        return;
+      }
+
+      const img = new Image();
+      img.onload = () => {
+        backgroundImage = img;
+        drawBeads();
+      };
+      img.src = `background/${filename}`;
+    }
+
     canvas.addEventListener('click', (e) => {
-     	const rect = canvas.getBoundingClientRect();
-      	const scaleX = canvas.width / rect.width;
-	const scaleY = canvas.height / rect.height;
-	const mx = (e.clientX - rect.left) * scaleX;
-	const my = (e.clientY - rect.top) * scaleY;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const mx = (e.clientX - rect.left) * scaleX;
+      const my = (e.clientY - rect.top) * scaleY;
 
       let currentAngle = -Math.PI / 2;
 
@@ -271,19 +306,19 @@
 
     loadImages(() => drawBeads());
 
-  	  function saveAsJPG() {
- 	 if (beads.length === 0) {
- 	   alert("Najpierw dodaj koraliki, aby zapisać bransoletkę.");
-  	  return;
-	  }
+    function saveAsJPG() {
+      if (beads.length === 0) {
+        alert("Najpierw dodaj koraliki, aby zapisać bransoletkę.");
+        return;
+      }
 
- 	 const image = canvas.toDataURL('image/jpeg', 0.95);
-  	const link = document.createElement('a');
-	  link.href = image;
- 	 link.download = 'bransoletkaDzidziStones.jpg';
-  	document.body.appendChild(link);
- 	 link.click();
-  	document.body.removeChild(link);
+      const image = canvas.toDataURL('image/jpeg', 0.95);
+      const link = document.createElement('a');
+      link.href = image;
+      link.download = 'bransoletkaDzidziStones.jpg';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
   </script>
 </body>

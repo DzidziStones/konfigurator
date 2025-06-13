@@ -7,82 +7,87 @@
   <style>
     body {
       font-family: sans-serif;
+      font-size: 75%;
       margin: 20px;
       display: flex;
-      flex-direction: row;
-      justify-content: flex-start;
-      align-items: flex-start;
+      flex-direction: column;
+      align-items: center;
       gap: 20px;
     }
+
     canvas {
       border: 1px solid #ccc;
       width: 500px;
       height: 500px;
     }
+
     .controls-wrapper {
       display: flex;
       flex-direction: column;
-      align-items: flex-start;
+      align-items: center;
+      width: 100%;
     }
-    .controls-table {
-      border-collapse: collapse;
-    }
-    .controls-table th, .controls-table td {
-      padding: 4px;
-    }
-    .controls-table th {
-      text-align: center;
-    }
-    .controls-table button {
-      padding: 6px 10px;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-    .clear-button {
+
+    .scroll-table-wrapper {
+      overflow-x: auto;
+      max-width: 100%;
       margin-top: 10px;
     }
 
-    /* --- Responsywność --- */
-    @media (max-width: 600px) {
-      body {
-        flex-direction: column;
-        align-items: center;
-      }
+    .controls-table {
+      border-collapse: collapse;
+      min-width: 600px;
+    }
 
+    .controls-table th,
+    .controls-table td {
+      padding: 3px;
+      text-align: center;
+    }
+
+    .controls-table button {
+      padding: 4px 8px;
+      font-size: 75%;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .clear-button {
+      margin-top: 10px;
+      font-size: 75%;
+      padding: 4px 8px;
+    }
+
+    @media (max-width: 600px) {
       canvas {
         width: 90vw;
         height: 90vw;
       }
 
       .controls-wrapper {
-        width: 100%;
         align-items: center;
-      }
-
-      .controls-table {
-        width: 100%;
-        table-layout: fixed;
-      }
-
-      .controls-table th, .controls-table td {
-        text-align: center;
       }
     }
   </style>
 </head>
 <body>
+
+  <canvas id="braceletCanvas" width="500" height="500"></canvas>
+
   <div class="controls-wrapper">
-    <table class="controls-table" id="buttonsTable">
-      <thead>
-        <tr>
-          <th>Kamień / Rozmiar</th>
-          <th>4 mm</th>
-          <th>6 mm</th>
-          <th>8 mm</th>
-        </tr>
-      </thead>
-      <tbody id="tableBody"></tbody>
-    </table>
+    <div class="scroll-table-wrapper">
+      <table class="controls-table" id="buttonsTable">
+        <thead>
+          <tr>
+            <th>Kamień / Rozmiar</th>
+            <th>4 mm</th>
+            <th>6 mm</th>
+            <th>8 mm</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
 
     <button class="clear-button" onclick="clearBeads()">Wyczyść</button>
     <button onclick="saveAsJPG()">Zapisz jako JPG</button>
@@ -92,8 +97,6 @@
       <ul id="beadList"></ul>
     </div>
   </div>
-
-  <canvas id="braceletCanvas" width="500" height="500"></canvas>
 
   <script>
     const canvas = document.getElementById('braceletCanvas');
@@ -140,18 +143,11 @@
     }
 
     function getUsedAngleRadians() {
-      let sum = 0;
-      for (const bead of beads) {
-        const arcLength = bead.size * pixelsPerMM;
-        const angle = arcLength / radius;
-        sum += angle;
-      }
-      return sum;
+      return beads.reduce((sum, bead) => sum + (bead.size * pixelsPerMM) / radius, 0);
     }
 
     function addBead(stone, size) {
-      const arcLength = size * pixelsPerMM;
-      const angle = arcLength / radius;
+      const angle = (size * pixelsPerMM) / radius;
       if (getUsedAngleRadians() + angle > 2 * Math.PI) return;
       beads.push({ stone, size });
       drawBeads();
